@@ -5,11 +5,18 @@
   "dependencies": {
     "commander": "^7.0.0"
   },
-  "repository": "thomashempel/package-diff",
   "author": "Thomas Hempel",
   "license": "MIT",
   "preferGlobal": true,
   "bin": {
     "package-diff": "index.js"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thomashempel/package-diff.git"
+  },
+  "bugs": {
+    "url": "https://github.com/thomashempel/package-diff/issues"
+  },
+  "homepage": "https://github.com/thomashempel/package-diff"
 }
