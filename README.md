@@ -1,4 +1,4 @@
-# package-diff
+# packagelock-diff
 
 Prints a list of changed packages extracted from package-lock.json
 
@@ -6,14 +6,14 @@ Prints a list of changed packages extracted from package-lock.json
 
 Install from npm:
 
-    # npm install -g package-diff
+    # npm install -g packagelock-diff
 
 ## Usage
 
 Autofill the commit message:
 
-    $ package-diff | git commit -F-
+    $ packagelock-diff | git commit -F-
 
 or as a commit template:
 
-    $ git commit -t- <(package-diff)
+    $ git commit -t- <(packagelock-diff)

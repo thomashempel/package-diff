@@ -1,5 +1,5 @@
 {
-  "name": "package-diff",
+  "name": "packagelock-diff",
   "version": "1.0.0",
   "description": "Prints a list of changed packages extracted from package-lock.json",
   "dependencies": {
@@ -9,14 +9,14 @@
   "license": "MIT",
   "preferGlobal": true,
   "bin": {
-    "package-diff": "index.js"
+    "packagelock-diff": "index.js"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/thomashempel/package-diff.git"
+    "url": "https://github.com/thomashempel/packagelock-diff.git"
   },
   "bugs": {
-    "url": "https://github.com/thomashempel/package-diff/issues"
+    "url": "https://github.com/thomashempel/packagelock-diff/issues"
   },
-  "homepage": "https://github.com/thomashempel/package-diff"
+  "homepage": "https://github.com/thomashempel/packagelock-diff"
 }
