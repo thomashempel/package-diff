@@ -2,6 +2,9 @@
 
 Prints a list of changed packages extracted from package-lock.json
 
+This is based on https://www.npmjs.com/package/composer-diff
+
+
 ## Installing
 
 Install from npm:

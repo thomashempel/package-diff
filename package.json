@@ -1,6 +1,6 @@
 {
   "name": "packagelock-diff",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Prints a list of changed packages extracted from package-lock.json",
   "dependencies": {
     "commander": "^7.0.0"
