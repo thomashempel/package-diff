@@ -1,70 +1,54 @@
 #! /usr/bin/env node
 const fs = require("fs");
-const path = require("path");
 const process = require("process");
 const child_process = require("child_process");
 const program = require("commander");
 
+if (!fs.existsSync("./package-lock.json")) {
+  process.stderr.write("package-json.lock does not exist!\n");
+  return -1;
+}
+
 program
-  .version("1.0.0")
-  .option("-d, --dir <path>", "Path to npm project")
+  .version("1.1.0")
+  .option("-e, --errors", "Output errors")
+  .option("-p, --prefix <string>", "Commit message default", "chore")
   .parse(process.argv);
 
-const dir = program.dir || process.cwd();
-const packageLockPath = path.join(dir, "package-lock.json");
+const options = program.opts();
 
-const origLock = getHeadPackageLock();
-const newLock = getPackageLock();
-
-Promise.all([origLock, newLock]).then(
-  function (values) {
-    var orig = values[0];
-    var new_ = values[1];
-    var diffs = packageDiff(orig, new_);
-    writeCommitMessage(diffs);
-  },
-  function (err) {
-    console.log("Err: " + err);
-  }
-);
-
-function writeCommitMessage(diffs) {
-  console.log("\nchore: Update packages\n");
+const writeCommitMessage = (diffs) => {
+  const prefix = options.prefix + ": ";
+  process.stdout.write(prefix + "Update packages\n\n");
 
   diffs.forEach(function (diff) {
     var str = "* " + diff.pkg;
     if (diff.new) {
       str += " was added";
-      console.log(str);
+      process.stdout.write(str + "\n");
     } else if (diff.deleted) {
       str += " was removed";
-      console.log(str);
+      process.stdout.write(str + "\n");
     } else if (diff.version || diff.ref) {
       if (diff.version) {
         str += ": " + diff.version.old + " => " + diff.version.new;
       } else if (diff.ref) {
         str += ": " + diff.ref.old + " => " + diff.ref.new;
       }
-      console.log(str);
+      process.stdout.write(str + "\n");
     }
   });
-}
+};
 
-function extractName(key) {
-  let parts = key.split('/')
-  parts.shift()
-  return parts.join('/')
-}
-
-function comparePackages(key, pkg1, pkg2) {
-  var diff = {
-    pkg: extractName(key),
+const comparePackages = (package_key, package_old, package_new) => {
+  let diff = {
+    pkg: package_key,
   };
 
-  if (pkg1.version !== pkg2.version) {
+  if (package_old.version !== package_new.version) {
     diff.version = {
-      old: pkg1.version,
-      new: pkg2.version,
+      old: package_old.version,
+      new: package_new.version,
     };
   }
 
@@ -72,26 +56,31 @@ function comparePackages(key, pkg1, pkg2) {
     return diff;
   }
 
-  return false
-}
+  return false;
+};
 
-function packageDiff(lock1, lock2) {
-  var diffs = [];
-  var pkgs1 = lock1.packages;
-  var pkgs2 = lock2.packages;
+const packageDiff = (lock_head, lock_current) => {
+  let diffs = [];
 
-  let packageKeys1 = Object.keys(pkgs1)
-  let packageKeys2 = Object.keys(pkgs2)
+  let packages_head = lock_head.packages;
+  let packages_current = lock_current.packages;
 
-  packageKeys1.forEach(function(pkgKey) {
-    if (packageKeys2.includes(pkgKey)) {
+  let package_keys_head = Object.keys(packages_head);
+  let package_keys_current = Object.keys(packages_current);
+
+  package_keys_head.forEach((package_key) => {
+    if (package_key === "") {
+      return;
+    }
+
+    if (package_keys_current.includes(package_key)) {
       let diff = comparePackages(
-        pkgKey,
-        lock1.packages[pkgKey],
-        lock2.packages[pkgKey]
-      )
+        package_key,
+        packages_head[package_key],
+        packages_current[package_key]
+      );
       if (diff !== false) {
-        diffs.push(diff)
+        diffs.push(diff);
       }
     } else {
       // package was deleted
@@ -103,52 +92,71 @@ function packageDiff(lock1, lock2) {
   });
 
   // Check for new packages
-  packageKeys2.forEach(function (packageKey) {
-    if (!packageKeys1.includes(packageKey)) {
+  package_keys_current.forEach((package_key) => {
+    if (package_key === "") {
+      return;
+    }
+    if (!package_keys_head.includes(package_key)) {
       diffs.push({
-        pkg: extractName(packageKey),
+        pkg: package_key,
         new: true,
       });
     }
   });
 
   return diffs;
-}
+};
 
-function getPackageLock() {
+const loadCurrentPackageLock = () => {
   return new Promise(function (resolve, reject) {
-    fs.readFile(packageLockPath, "utf8", function (err, data) {
-      if (err) {
-        reject(err);
+    fs.readFile("./package-lock.json", "utf8", function (error, data) {
+      if (error) {
+        reject(error);
         return;
       }
       resolve(JSON.parse(data));
     });
   });
-}
+};
 
-function getHeadPackageLock() {
-  return new Promise(function (resolve, reject) {
-    var p = child_process.spawn("git", ["show", "HEAD:./package-lock.json"], {
-      cwd: dir
-    });
-    var data = "";
+const loadHeadPackageLock = () => {
+  return new Promise(function (resolve) {
+    var p = child_process.spawn("git", ["show", "HEAD:./package-lock.json"]);
 
-    p.stdout.on("data", function (out) {
-      data += out;
-    });
+    var json = "";
 
-    p.stderr.on("data", function (err) {
-      console.log(err);
+    p.stdout.on("data", (data) => {
+      json += data;
     });
 
-    p.on("error", function (err) {
-      console.log(err);
-      reject();
+    p.stderr.on("data", (data) => {
+      if (options.errors) {
+        process.stderr.write(`stderr: ${data}`);
+      }
     });
 
-    p.on("close", function () {
-      resolve(JSON.parse(data));
+    p.on("close", (code) => {
+      if (code !== 0) {
+        resolve({ packages: [] });
+      } else {
+        resolve(JSON.parse(json));
+      }
     });
   });
-}
+};
+
+const lock_head = loadHeadPackageLock();
+const lock_updated = loadCurrentPackageLock();
+
+Promise.all([lock_head, lock_updated]).then(
+  function (values) {
+    const [head, current] = values;
+    const diffs = packageDiff(head, current);
+    writeCommitMessage(diffs);
+  },
+  function (error) {
+    if (options.errors) {
+      process.stderr.write(`Err: ${error}\n`);
+    }
+  }
+);
