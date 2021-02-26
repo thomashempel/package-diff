@@ -10,7 +10,7 @@ if (!fs.existsSync("./package-lock.json")) {
 }
 
 program
-  .version("1.1.0")
+  .version("1.1.1")
   .option("-e, --errors", "Output errors")
   .option("-p, --prefix <string>", "Commit message default", "chore")
   .parse(process.argv);
@@ -85,7 +85,7 @@ const packageDiff = (lock_head, lock_current) => {
     } else {
       // package was deleted
       diffs.push({
-        pkg: pkg.name,
+        pkg: package_key,
         deleted: true,
       });
     }
